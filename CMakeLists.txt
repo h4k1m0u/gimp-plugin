@@ -16,6 +16,6 @@ pkg_check_modules(GLIB REQUIRED glib-2.0)
 pkg_check_modules(GIO REQUIRED gio-2.0)
 
 # gimp2.0-dev required
-add_executable(main src/main.c)
-target_include_directories(main PUBLIC ${GIO_INCLUDE_DIRS} ${GLIB_INCLUDE_DIRS} ${GIMP_INCLUDE_DIRS} include)
-target_link_libraries(main ${GIO_LIBRARIES} ${GLIB_LIBRARIES} ${GIMP_LIBRARIES})
+add_executable(hello_world src/hello_world.c)
+target_include_directories(hello_world PUBLIC ${GIO_INCLUDE_DIRS} ${GLIB_INCLUDE_DIRS} ${GIMP_INCLUDE_DIRS} include)
+target_link_libraries(hello_world ${GIO_LIBRARIES} ${GLIB_LIBRARIES} ${GIMP_LIBRARIES})
