@@ -30,7 +30,7 @@ $ gimptool-2.0 --uninstall-bin <executable>
 - [LibGimp reference][2].
 - [Plugin development tutorial in C][3].
 - Search for gimp plugins on [Github][4].
-- Source code for [pluging included in gimp][5].
+- Source code for [plugins included in gimp][5].
 
 [1]: https://developer.gimp.org/api/2.0/
 [2]: https://developer.gimp.org/api/2.0/libgimp/libgimp-index.html
@@ -40,6 +40,12 @@ $ gimptool-2.0 --uninstall-bin <executable>
 
 
 # GTK spinoffs
+## GTK
+- Gimp 2.10 is compatible with Gtk 2.
+- [Gtk2 official tutorial][gtk-tutorial].
+
+[gtk-tutorial]: https://developer.gnome.org/gtk-tutorial/stable/book1.html
+
 ## Glib
 - Implementations of data structures in C (chained lists, hash maps...).
 - [Glib tutorial][6].

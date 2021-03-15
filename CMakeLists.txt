@@ -13,9 +13,9 @@ file(COPY assets DESTINATION ${CMAKE_BINARY_DIR})
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GIMP REQUIRED gimp-2.0)
 pkg_check_modules(GLIB REQUIRED glib-2.0)
-pkg_check_modules(GIO REQUIRED gio-2.0)
+pkg_check_modules(GTK REQUIRED gtk+-2.0)
 
-# gimp2.0-dev required
-add_executable(hello_world src/hello_world.c)
-target_include_directories(hello_world PUBLIC ${GIO_INCLUDE_DIRS} ${GLIB_INCLUDE_DIRS} ${GIMP_INCLUDE_DIRS} include)
-target_link_libraries(hello_world ${GIO_LIBRARIES} ${GLIB_LIBRARIES} ${GIMP_LIBRARIES})
+# main executable
+add_executable(hello_gtk src/hello_gtk.c)
+target_include_directories(hello_gtk PUBLIC ${GTK_INCLUDE_DIRS} ${GIO_INCLUDE_DIRS} ${GLIB_INCLUDE_DIRS} ${GIMP_INCLUDE_DIRS} include)
+target_link_libraries(hello_gtk ${GTK_LIBRARIES} ${GIO_LIBRARIES} ${GLIB_LIBRARIES} ${GIMP_LIBRARIES})
