@@ -5,12 +5,14 @@ $ sudo apt install libgimp2.0-dev
 
 
 # Installation
+## Folders
+- **Gimp's plugins:** /usr/lib/gimp/2.0/plug-ins
+- **User's pluging:** ~/.config/GIMP/2.10/plug-ins/
+
 ## From a single source file
 ```console
-$ gimptool-2.0 --install main.c 
+$ gimptool-2.0 --install main.c
 ```
-
-The installed plugin can be found in `~/.config/GIMP/2.10/plug-ins/`.
 
 ## From a cmake project
 ```console
@@ -59,3 +61,8 @@ File input/output using streams in C (similar to what they have in java).
 
 ## GObject
 OOP in C supporting properties, methods, and signals.
+
+## GEGL
+Image processing operations represented by graph nodes. See [its documentation][gegl-api].
+
+[gegl-api]: http://getfr.org/pub/dragonfly-release/usr-local-share/doc/gegl/api.html
