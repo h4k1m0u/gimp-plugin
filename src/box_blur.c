@@ -46,7 +46,7 @@ static void query(void) {
   };
 
   // install new procedure with PDB
-  const gchar* name_procedure = "box-blur";
+  const gchar* name_procedure = "box_blur";
   gimp_install_procedure(
     name_procedure,             // name
     "Box blur description",     // blurp
@@ -118,9 +118,9 @@ static void box_blur(GimpDrawable* drawable) {
 
   for (gint i_row = y1; i_row < y2; ++i_row) {
     // read three rows of pixels covering neighborhood (row before, row, row after)
-    gimp_pixel_rgn_get_row(&region_read, row_minus_1, x1, i_row - 1, width);
+    gimp_pixel_rgn_get_row(&region_read, row_minus_1, x1, MAX(i_row - 1, y1), width);
     gimp_pixel_rgn_get_row(&region_read, row, x1, i_row, width);
-    gimp_pixel_rgn_get_row(&region_read, row_plus_1, x1, i_row + 1, width);
+    gimp_pixel_rgn_get_row(&region_read, row_plus_1, x1, MIN(i_row + 1, y2 - 1), width);
 
     for (gint i_col = x1; i_col < x2; ++i_col) {
       // update all channels for each row pixel

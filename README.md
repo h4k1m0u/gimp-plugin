@@ -41,6 +41,41 @@ $ gimptool-2.0 --uninstall-bin <executable>
 [5]: https://gitlab.gnome.org/GNOME/gimp/-/tree/gimp-2-10/plug-ins
 
 
+# Debugging
+1. Build Gimp from [source][gimp-source], babl and GEGL may need to be built from source if on Ubuntu:
+```console
+$ ./configure --disable-python --enable-debug
+$ make
+# make install
+```
+
+2. Following [this link][gimp-plugin-debug]:
+
+```console
+$ export GIMP_PLUGIN_DEBUG=<plugin-name>
+$ gimp &
+```
+
+3. Once the plugin is run, its pid should appear on the terminal gimp was launched from. All that's left to do is to attach `gdb` to that process:
+
+```console
+$ cgdb ~/.config/GIMP/2.10/plug-ins/box_blur/box_blur
+(gdb) b 1
+(gdb) handle all nostop # needed when signals interrupt execution
+(gdb) attach <pid>
+```
+
+[gimp-source]: https://www.gimp.org/source/#gimp-source-code
+[gimp-plugin-debug]: https://gitlab.gnome.org/GNOME/gimp/-/blob/master/devel-docs/debug-plug-ins.txt
+
+## Troubleshooting
+On Ubuntu, gdb is unlikely to bind to a process unless called as root. To circumvent this limitation:
+
+```console
+$ echo 0 | sudo tee /proc/sys/kernel/yama/ptrace_scope
+```
+
+
 # GTK spinoffs
 ## GTK
 - Gimp 2.10 is compatible with Gtk 2.
