@@ -123,60 +123,65 @@ static void box_blur(gint32 drawable_id) {
   GeglBuffer* buffer = gimp_drawable_get_buffer(drawable_id);
   GeglBuffer* shadow_buffer = gimp_drawable_get_shadow_buffer(drawable_id);
 
+  // read all image at once from input buffer
+  const GeglRectangle* extent = gegl_buffer_get_extent(buffer);
+  const Babl* format = gimp_drawable_get_format(drawable_id);
+  gint n_channels = gimp_drawable_bpp(drawable_id);
+  guchar* image = g_new(guchar, extent->width * extent->height * n_channels);
+  gegl_buffer_get(buffer, GEGL_RECTANGLE(extent->x, extent->y, extent->width, extent->height),
+                  1.0, format, image, GEGL_AUTO_ROWSTRIDE, GEGL_ABYSS_NONE);
+  g_message("Image(width, height, n_channels) = (%d, %d, %d)", extent->width, extent->height, n_channels);
+
   // get bounds of selection (or else of entire image)
   gint x1, y1, width, height;
   gimp_drawable_mask_intersect(drawable_id, &x1, &y1, &width, &height);
-  // const GeglRectangle* extent = gegl_buffer_get_extent(buffer);
   gint x2 = x1 + width;
   gint y2 = y1 + height;
-  gint n_channels = gimp_drawable_bpp(drawable_id);
-  gint n_bytes_row = width * n_channels;
-  g_message("(x1, y1) = (%d, %d)", x1, y1);
-  g_message("(width, height, n_channels) = (%d, %d, %d)", width, height, n_channels);
+  g_message("Selection(x1, y1) = (%d, %d)", x1, y1);
+  g_message("Selection(width, height, n_channels) = (%d, %d, %d)", width, height, n_channels);
 
   // buffer for row of image pixels (each pixel has n channels)
+  gint n_bytes_row = width * n_channels;
   guchar* row_minus_1 = g_new(guchar, n_bytes_row);
   guchar* row = g_new(guchar, n_bytes_row);
   guchar* row_plus_1 = g_new(guchar, n_bytes_row);
   guchar* row_out = g_new(guchar, n_bytes_row);
 
-  // read all image at once from input buffer
-  g_message("size image: %d", n_bytes_row * height);
-  guchar* image = g_new(guchar, n_bytes_row * height);
-  const Babl* format = gimp_drawable_get_format(drawable_id);
-  gegl_buffer_get(buffer, GEGL_RECTANGLE(x1, y1, width, height),
-                  1.0, format, image, GEGL_AUTO_ROWSTRIDE, GEGL_ABYSS_NONE);
-
   for (gint i_row = y1; i_row < y2; ++i_row) {
     // copy from image to rows pointers (row before, row, and row after)
-    memcpy(row_minus_1, &image[MAX(i_row - 1, y1) * n_bytes_row], n_bytes_row);
-    memcpy(row, &image[i_row * n_bytes_row], n_bytes_row);
-    memcpy(row_plus_1, &image[MIN(i_row + 1, y2 - 1) * n_bytes_row], n_bytes_row);
+    gint offset_minus_1 = (extent->width * MAX(i_row - 1, y1) + x1) * n_channels;
+    gint offset = (extent->width * i_row + x1) * n_channels;
+    gint offset_plus_1 = (extent->width * MIN(i_row + 1, y2 - 1) + x1) * n_channels;
+    memcpy(row_minus_1, &image[offset_minus_1], n_bytes_row);
+    memcpy(row, &image[offset], n_bytes_row);
+    memcpy(row_plus_1, &image[offset_plus_1], n_bytes_row);
 
-    for (gint i_col = x1; i_col < x2; ++i_col) {
+    for (gint i_col = 0; i_col < width; ++i_col) {
       // update all channels for each row pixel
       gint n_neighbors = 9;
       for (gint i_channel = 0; i_channel < n_channels; ++i_channel) {
         gint i_cell = i_col*n_channels + i_channel;
-        gint sum = row_minus_1[i_cell - n_channels] +
-                          row_minus_1[i_cell] +
-                          row_minus_1[i_cell + n_channels] +
-                          row[i_cell - n_channels] +
-                          row[i_cell] +
-                          row[i_cell + n_channels] +
-                          row_plus_1[i_cell - n_channels] +
-                          row_plus_1[i_cell] +
-                          row_plus_1[i_cell + n_channels];
+        gint i_cell_minus_1 = MAX(i_cell - n_channels, i_channel);
+        gint i_cell_plus_1 = MIN(i_cell + n_channels, n_bytes_row - n_channels + i_channel);
+        gint sum = row_minus_1[i_cell_minus_1] +
+                   row_minus_1[i_cell] +
+                   row_minus_1[i_cell_plus_1] +
+                   row[i_cell_minus_1] +
+                   row[i_cell] +
+                   row[i_cell_plus_1] +
+                   row_plus_1[i_cell_minus_1] +
+                   row_plus_1[i_cell] +
+                   row_plus_1[i_cell_plus_1];
         row_out[i_cell] = sum / n_neighbors;
       }
     }
 
     // copy from resulting row pointer to image
-    memcpy(image + (i_row * n_bytes_row), row_out, n_bytes_row);
+    memcpy(&image[offset], row_out, n_bytes_row);
   }
 
   // write resulting image at once to shadow buffer
-  gegl_buffer_set(shadow_buffer, GEGL_RECTANGLE(x1, y1, width, height),
+  gegl_buffer_set(shadow_buffer, GEGL_RECTANGLE(extent->x, extent->y, extent->width, extent->height),
                   0, format, image, GEGL_AUTO_ROWSTRIDE);
 
   // flush required by shadow buffer & merge shadow buffer with drawable & update drawable
