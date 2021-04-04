@@ -2,10 +2,11 @@
 #include <glib.h>
 #include <glib/gprintf.h>
 #include <gio/gio.h>
+#include <string.h>
 
 static void query(void);
 static void run(const gchar* name, gint nparams, const GimpParam* param, gint* nreturn_vals, GimpParam** return_vals);
-static void box_blur(GimpDrawable* drawable);
+static void box_blur(gint32 drawable_id);
 
 // used to copy rgba pixels
 typedef struct RGBA {
@@ -82,45 +83,75 @@ static void run(const gchar* name, gint nparams, const GimpParam* param, gint* n
   }
 
   // get opened drawable (layer?)
-  GimpDrawable* drawable = gimp_drawable_get(param[2].data.d_drawable);
+  // GimpDrawable* drawable = gimp_drawable_get(param[2].data.d_drawable);
+
+  // init gegl before using its functions
+  gegl_init(NULL, NULL);
 
   // apply blurring to drawable
-  box_blur(drawable);
+  gint32 drawable_id = param[2].data.d_drawable;
+  box_blur(drawable_id);
 
-  // flush image manipulation changes to UI & free drawable
+  // paint gegl buffer in blue
+  /*
+  GeglColor* blue = gegl_color_new("blue");
+  GeglBuffer* buffer = gimp_drawable_get_buffer(drawable_id);
+  gegl_buffer_set_color(buffer, NULL, blue);
+  const GeglRectangle* extent = gegl_buffer_get_extent(buffer);
+  gimp_drawable_update(drawable_id, extent->x, extent->y, extent->width, extent->height);
+  g_object_unref(blue);
+  g_object_unref(buffer);
+  */
+
+  // flush image manipulation changes to UI
   gimp_displays_flush();
-  gimp_drawable_detach(drawable);
+
+  // free resources used by gegl
+  gegl_exit();
 }
 
-static void box_blur(GimpDrawable* drawable) {
-  // https://en.wikipedia.org/wiki/Box_blur
+/**
+ * Box blur with a 9 x 9 kernel. Blurs particularly edges well.
+ *
+ * To see how GEGL buffer and shadow buffer are used:
+ * https://gitlab.gnome.org/GNOME/gimp/-/blob/gimp-2-10/plug-ins/common/despeckle.c#L353
+ *
+ * @param drawable
+ */
+static void box_blur(gint32 drawable_id) {
+  // gegl buffer & shadow buffer for reading/writing resp.
+  GeglBuffer* buffer = gimp_drawable_get_buffer(drawable_id);
+  GeglBuffer* shadow_buffer = gimp_drawable_get_shadow_buffer(drawable_id);
+
   // get bounds of selection (or else of entire image)
-  gint x1, y1, x2, y2;
-  gimp_drawable_mask_bounds(drawable->drawable_id, &x1, &y1, &x2, &y2);
-  gint width = x2 - x1;
-  gint height = y2 - y1;
-  g_message("width = %d, height = %d", width, height);
-
-  // init regions for reading/writing from drawable
-  GimpPixelRgn region_read, region_write;
-  gimp_pixel_rgn_init(&region_read, drawable, x1, y1, width, height, FALSE, FALSE);
-  gimp_pixel_rgn_init(&region_write, drawable, x1, y1, width, height, TRUE, TRUE);
-
-  // calcualte average in neighborhood along each channel
-  gint n_channels = gimp_drawable_bpp(drawable->drawable_id);
-  g_message("n_channels = %d", n_channels);
+  gint x1, y1, width, height;
+  gimp_drawable_mask_intersect(drawable_id, &x1, &y1, &width, &height);
+  // const GeglRectangle* extent = gegl_buffer_get_extent(buffer);
+  gint x2 = x1 + width;
+  gint y2 = y1 + height;
+  gint n_channels = gimp_drawable_bpp(drawable_id);
+  gint n_bytes_row = width * n_channels;
+  g_message("(x1, y1) = (%d, %d)", x1, y1);
+  g_message("(width, height, n_channels) = (%d, %d, %d)", width, height, n_channels);
 
   // buffer for row of image pixels (each pixel has n channels)
-  guchar* row_minus_1 = g_new(guchar, n_channels * width);
-  guchar* row = g_new(guchar, n_channels * width);
-  guchar* row_plus_1 = g_new(guchar, n_channels * width);
-  guchar* row_out = g_new(guchar, n_channels * width);
+  guchar* row_minus_1 = g_new(guchar, n_bytes_row);
+  guchar* row = g_new(guchar, n_bytes_row);
+  guchar* row_plus_1 = g_new(guchar, n_bytes_row);
+  guchar* row_out = g_new(guchar, n_bytes_row);
+
+  // read all image at once from input buffer
+  g_message("size image: %d", n_bytes_row * height);
+  guchar* image = g_new(guchar, n_bytes_row * height);
+  const Babl* format = gimp_drawable_get_format(drawable_id);
+  gegl_buffer_get(buffer, GEGL_RECTANGLE(x1, y1, width, height),
+                  1.0, format, image, GEGL_AUTO_ROWSTRIDE, GEGL_ABYSS_NONE);
 
   for (gint i_row = y1; i_row < y2; ++i_row) {
-    // read three rows of pixels covering neighborhood (row before, row, row after)
-    gimp_pixel_rgn_get_row(&region_read, row_minus_1, x1, MAX(i_row - 1, y1), width);
-    gimp_pixel_rgn_get_row(&region_read, row, x1, i_row, width);
-    gimp_pixel_rgn_get_row(&region_read, row_plus_1, x1, MIN(i_row + 1, y2 - 1), width);
+    // copy from image to rows pointers (row before, row, and row after)
+    memcpy(row_minus_1, &image[MAX(i_row - 1, y1) * n_bytes_row], n_bytes_row);
+    memcpy(row, &image[i_row * n_bytes_row], n_bytes_row);
+    memcpy(row_plus_1, &image[MIN(i_row + 1, y2 - 1) * n_bytes_row], n_bytes_row);
 
     for (gint i_col = x1; i_col < x2; ++i_col) {
       // update all channels for each row pixel
@@ -140,19 +171,27 @@ static void box_blur(GimpDrawable* drawable) {
       }
     }
 
-    // write entire row all at once
-    gimp_pixel_rgn_set_row(&region_write, row_out, 0, i_row, width);
+    // copy from resulting row pointer to image
+    memcpy(image + (i_row * n_bytes_row), row_out, n_bytes_row);
   }
 
-  // free allocated pointers
+  // write resulting image at once to shadow buffer
+  gegl_buffer_set(shadow_buffer, GEGL_RECTANGLE(x1, y1, width, height),
+                  0, format, image, GEGL_AUTO_ROWSTRIDE);
+
+  // flush required by shadow buffer & merge shadow buffer with drawable & update drawable
+  gegl_buffer_flush(shadow_buffer);
+  gimp_drawable_merge_shadow(drawable_id, TRUE);
+  gimp_drawable_update(drawable_id, x1, y1, width, height);
+
+  // free allocated pointers & buffers
   g_free(row_minus_1);
   g_free(row);
   g_free(row_plus_1);
   g_free(row_out);
+  g_free(image);
+  g_object_unref(buffer);
+  g_object_unref(shadow_buffer);
 
-  // merge shadow buffer with drawable & update drawable region & transfer to core (ie gimp)
-  gimp_drawable_merge_shadow(drawable->drawable_id, TRUE);
-  gimp_drawable_update(drawable->drawable_id, x1, y1, width, height);
-  gimp_drawable_flush(drawable);
   g_message("Done");
 }

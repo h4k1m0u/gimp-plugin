@@ -30,15 +30,17 @@ $ gimptool-2.0 --uninstall-bin <executable>
 # Resources
 - [LibGimp manual][1].
 - [LibGimp reference][2].
+- [Updated reference for Gimp 2.10.16][gimp-2.10.16-api].
 - [Plugin development tutorial in C][3].
 - Search for gimp plugins on [Github][4].
-- Source code for [plugins included in gimp][5].
+- Source code for [plugins included in gimp][gimp-plugins], particularly `<gimp-repo>/plug-ins/file-gimp` for reading/writing BMP images.
 
 [1]: https://developer.gimp.org/api/2.0/
 [2]: https://developer.gimp.org/api/2.0/libgimp/libgimp-index.html
 [3]: https://developer.gimp.org/plug-ins.html
 [4]: https://github.com/search?l=C&q=gimp+plugin&type=Repositories
-[5]: https://gitlab.gnome.org/GNOME/gimp/-/tree/gimp-2-10/plug-ins
+[gimp-plugins]: https://gitlab.gnome.org/GNOME/gimp/-/tree/gimp-2-10/plug-ins
+[gimp-2.10.16-api]: https://www.manpagez.com/html/libgimp/libgimp-2.10.16/
 
 
 # Debugging
@@ -52,7 +54,7 @@ $ make
 2. Following [this link][gimp-plugin-debug]:
 
 ```console
-$ export GIMP_PLUGIN_DEBUG=<plugin-name>
+$ export GIMP_PLUGIN_DEBUG=<plugin-binary-name>
 $ gimp &
 ```
 
@@ -60,8 +62,8 @@ $ gimp &
 
 ```console
 $ cgdb ~/.config/GIMP/2.10/plug-ins/box_blur/box_blur
-(gdb) b 1
-(gdb) handle all nostop # needed when signals interrupt execution
+(gdb) b <function-name>
+(gdb) handle all nostop # to ignore signals interruptions, or simply `continue` multiple times to skip them
 (gdb) attach <pid>
 ```
 
@@ -98,6 +100,22 @@ File input/output using streams in C (similar to what they have in java).
 OOP in C supporting properties, methods, and signals.
 
 ## GEGL
-Image processing operations represented by graph nodes. See [its documentation][gegl-api].
+Image processing operations represented by graph nodes.
+See [its documentation][gegl-api]. To build GEGL from [gegl-source][its source], `meson` and `ninja` need to be used:
+
+```console
+$ pip install meson
+$ meson build && cd build
+$ ninja
+$ sudo ninja install
+```
 
 [gegl-api]: http://getfr.org/pub/dragonfly-release/usr-local-share/doc/gegl/api.html
+[gegl-source]: https://download.gimp.org/pub/gegl/
+
+## BABL
+Conversion between pixel formats encoding and color spaces. See [its website][babl-api] for general concepts.
+Babl can be built from [babl-source][its source] with meson/ninja similarly to gegl.
+
+[babl-api]: https://gegl.org/babl/
+[babl-source]: https://download.gimp.org/pub/babl/
