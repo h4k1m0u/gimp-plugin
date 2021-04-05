@@ -82,13 +82,11 @@ static void run(const gchar* name, gint nparams, const GimpParam* param, gint* n
     g_message("Running interactively...");
   }
 
-  // get opened drawable (layer?)
-  // GimpDrawable* drawable = gimp_drawable_get(param[2].data.d_drawable);
-
   // init gegl before using its functions
   gegl_init(NULL, NULL);
 
   // apply blurring to drawable
+  gimp_progress_init("Box blur...");
   gint32 drawable_id = param[2].data.d_drawable;
   box_blur(drawable_id);
 
@@ -178,6 +176,13 @@ static void box_blur(gint32 drawable_id) {
 
     // copy from resulting row pointer to image
     memcpy(&image[offset], row_out, n_bytes_row);
+
+    // update progress bar using equation of line passing through (x, y) = (y1, 0%) and (y2, 100%)
+    if (i_row % 100 == 0) {
+      gdouble percentage = (gdouble) (i_row - y1) / (y2 - y1);
+      gimp_progress_update(percentage);
+      // g_usleep(0.1 * G_USEC_PER_SEC);
+    }
   }
 
   // write resulting image at once to shadow buffer
