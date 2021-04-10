@@ -6,20 +6,14 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_BUILD_TYPE Debug)
 # set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address")
 
-# copy assets folder
-file(COPY assets DESTINATION ${CMAKE_BINARY_DIR})
-
 # required packages
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GIMP REQUIRED gimp-2.0)
-pkg_check_modules(GLIB REQUIRED glib-2.0)
-pkg_check_modules(GTK REQUIRED gtk+-2.0)
 
-# main executables
-add_executable(hello_gtk src/hello_gtk.c)
-target_include_directories(hello_gtk PUBLIC ${GTK_INCLUDE_DIRS} ${GIO_INCLUDE_DIRS} ${GLIB_INCLUDE_DIRS} ${GIMP_INCLUDE_DIRS} include)
-target_link_libraries(hello_gtk ${GTK_LIBRARIES} ${GIO_LIBRARIES} ${GLIB_LIBRARIES} ${GIMP_LIBRARIES})
-
-add_executable(box_blur src/box_blur.c)
-target_include_directories(box_blur PUBLIC ${GTK_INCLUDE_DIRS} ${GIO_INCLUDE_DIRS} ${GLIB_INCLUDE_DIRS} ${GIMP_INCLUDE_DIRS} include)
-target_link_libraries(box_blur ${GTK_LIBRARIES} ${GIO_LIBRARIES} ${GLIB_LIBRARIES} ${GIMP_LIBRARIES})
+# executable
+add_executable(box_blur
+  src/fill.c
+  src/box_blur.c
+  src/blur.c)
+target_include_directories(box_blur PUBLIC ${GIMP_INCLUDE_DIRS} include)
+target_link_libraries(box_blur ${GIMP_LIBRARIES})

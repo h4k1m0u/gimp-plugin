@@ -33,7 +33,7 @@ $ gimptool-2.0 --uninstall-bin <executable>
 - [Updated reference for Gimp 2.10.16][gimp-2.10.16-api].
 - [Plugin development tutorial in C][3].
 - Search for gimp plugins on [Github][4].
-- Source code for [plugins included in gimp][gimp-plugins], particularly `<gimp-repo>/plug-ins/file-gimp` for reading/writing BMP images.
+- Source code for [plugins included in gimp][gimp-plugins], particularly `<gimp-repo>/plug-ins/file-bmp` for reading/writing BMP images.
 
 [1]: https://developer.gimp.org/api/2.0/
 [2]: https://developer.gimp.org/api/2.0/libgimp/libgimp-index.html
