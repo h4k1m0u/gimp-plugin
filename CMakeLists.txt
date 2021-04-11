@@ -11,9 +11,9 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(GIMP REQUIRED gimp-2.0)
 
 # executable
-add_executable(box_blur
+add_executable(blur
   src/fill.c
   src/box_blur.c
   src/blur.c)
-target_include_directories(box_blur PUBLIC ${GIMP_INCLUDE_DIRS} include)
-target_link_libraries(box_blur ${GIMP_LIBRARIES})
+target_include_directories(blur PUBLIC ${GIMP_INCLUDE_DIRS} include)
+target_link_libraries(blur ${GIMP_LIBRARIES})

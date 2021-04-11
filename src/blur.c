@@ -57,6 +57,13 @@ static void query(void) {
 }
 
 static void run(const gchar* name, gint nparams, const GimpParam* param, gint* nreturn_vals, GimpParam** return_vals) {
+  //
+  guint radius = 9;
+  gint x;
+  for (x = -radius; x < radius; x++);
+  g_message("-radius = %d", x);
+  //
+
   static GimpParam values[1];
   values[0].type = GIMP_PDB_STATUS;
   values[0].data.d_status = GIMP_PDB_SUCCESS;

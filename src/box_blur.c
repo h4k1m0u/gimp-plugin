@@ -32,43 +32,46 @@ void box_blur(gint32 drawable_id) {
   g_message("Selection(x1, y1) = (%d, %d)", x1, y1);
   g_message("Selection(width, height, n_channels) = (%d, %d, %d)", width, height, n_channels);
 
-  // buffer for row of image pixels (each pixel has n channels)
+  // 2D array for rows between [-radius, radius] from current row
   gint n_bytes_row = width * n_channels;
-  guchar* row_minus_1 = g_new(guchar, n_bytes_row);
-  guchar* row = g_new(guchar, n_bytes_row);
-  guchar* row_plus_1 = g_new(guchar, n_bytes_row);
   guchar* row_out = g_new(guchar, n_bytes_row);
+  gint radius = 3; // cannot use guint as unary minus has precedance over assignment (and guint cannot be negative below, so overflows)
+  gint n_neighbors = (2*radius + 1) * (2*radius + 1);
+  guchar** rows = g_new(guchar*, 2*radius + 1);
 
+  for (gint i_row_offset = -radius; i_row_offset <= radius; ++i_row_offset) {
+    rows[i_row_offset + radius] = g_new(guchar, n_bytes_row);
+  }
+
+  // blurring calculated on row-basis
   for (gint i_row = y1; i_row < y2; ++i_row) {
-    // copy from image to rows pointers (row before, row, and row after)
-    gint offset_minus_1 = (extent->width * MAX(i_row - 1, y1) + x1) * n_channels;
-    gint offset = (extent->width * i_row + x1) * n_channels;
-    gint offset_plus_1 = (extent->width * MIN(i_row + 1, y2 - 1) + x1) * n_channels;
-    memcpy(row_minus_1, &image[offset_minus_1], n_bytes_row);
-    memcpy(row, &image[offset], n_bytes_row);
-    memcpy(row_plus_1, &image[offset_plus_1], n_bytes_row);
+    // copy from image to 2D rows pointers (rows before, row, and rows after)
+    for (gint i_row_offset = -radius; i_row_offset <= radius; ++i_row_offset) {
+      gint i_row_neighbor = CLAMP(i_row + i_row_offset, y1, y2 - 1);
+      gint offset = (extent->width * i_row_neighbor + x1) * n_channels;
+      memcpy(rows[i_row_offset + radius], &image[offset], n_bytes_row);
+    }
 
+    // process each row pixel
     for (gint i_col = 0; i_col < width; ++i_col) {
-      // update all channels for each row pixel
-      gint n_neighbors = 9;
+      // neighborhood around row pixel for each channel
       for (gint i_channel = 0; i_channel < n_channels; ++i_channel) {
-        gint i_cell = i_col*n_channels + i_channel;
-        gint i_cell_minus_1 = MAX(i_cell - n_channels, i_channel);
-        gint i_cell_plus_1 = MIN(i_cell + n_channels, n_bytes_row - n_channels + i_channel);
-        gint sum = row_minus_1[i_cell_minus_1] +
-                   row_minus_1[i_cell] +
-                   row_minus_1[i_cell_plus_1] +
-                   row[i_cell_minus_1] +
-                   row[i_cell] +
-                   row[i_cell_plus_1] +
-                   row_plus_1[i_cell_minus_1] +
-                   row_plus_1[i_cell] +
-                   row_plus_1[i_cell_plus_1];
-        row_out[i_cell] = sum / n_neighbors;
+        gint sum = 0;
+
+        for (gint i_row_offset = -radius; i_row_offset <= radius; ++i_row_offset) {
+          for (gint i_col_offset = -radius; i_col_offset <= radius; ++i_col_offset) {
+            gint i_row_neighbor = i_row_offset + radius;
+            gint i_col_neighbor = CLAMP(i_col + i_col_offset, 0, width - 1);
+            sum += rows[i_row_neighbor][i_col_neighbor*n_channels + i_channel];
+          }
+        }
+
+        row_out[i_col*n_channels + i_channel] = sum / n_neighbors;
       }
     }
 
     // copy from resulting row pointer to image
+    gint offset = (extent->width * i_row + x1) * n_channels;
     memcpy(&image[offset], row_out, n_bytes_row);
 
     // update progress bar using equation of line passing through (x, y) = (y1, 0%) and (y2, 100%)
@@ -89,9 +92,7 @@ void box_blur(gint32 drawable_id) {
   gimp_drawable_update(drawable_id, x1, y1, width, height);
 
   // free allocated pointers & buffers
-  g_free(row_minus_1);
-  g_free(row);
-  g_free(row_plus_1);
+  g_free(rows);
   g_free(row_out);
   g_free(image);
   g_object_unref(buffer);
