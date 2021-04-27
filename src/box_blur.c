@@ -3,7 +3,7 @@
 #include "box_blur.h"
 
 /**
- * Box blur with a 9 x 9 kernel. Blurs particularly edges well.
+ * Box blur with a `radius` x `radius` kernel. Blurs particularly edges well.
  *
  * To see how GEGL buffer and shadow buffer are used:
  * https://gitlab.gnome.org/GNOME/gimp/-/blob/gimp-2-10/plug-ins/common/despeckle.c#L353
@@ -29,7 +29,7 @@ void box_blur(gint32 drawable_id) {
   gimp_drawable_mask_intersect(drawable_id, &x1, &y1, &width, &height);
   gint x2 = x1 + width;
   gint y2 = y1 + height;
-  g_message("Selection(x1, y1) = (%d, %d)", x1, y1);
+  g_message("Selection(x1, y1) = (%d, %d) - (x2, y2) = (%d, %d)", x1, y1, x2, y2);
   g_message("Selection(width, height, n_channels) = (%d, %d, %d)", width, height, n_channels);
 
   // 2D array for rows between [-radius, radius] from current row

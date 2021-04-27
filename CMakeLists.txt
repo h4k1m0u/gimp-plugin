@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.10)
 project(Gimp-Plugin)
 
-# enable auto-complete & debug with gdb & memory-leaks detection
+# enable auto-complete & debug with gdb & warnings
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_BUILD_TYPE Debug)
-# set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra")
 
 # required packages
 find_package(PkgConfig REQUIRED)

@@ -45,7 +45,7 @@ static void query(void) {
     "Hakim Benoudjit",          // author
     "Hakim Benoudjit ©",        // copyright
     "2021",                     // date
-    "Box blur",  // menu entry label
+    "Box blur",                 // menu entry label
     "RGB*",                     // accepted image types
     GIMP_PLUGIN,                // procedure type
     G_N_ELEMENTS(args), 0,      // # of params taken & returned
@@ -57,13 +57,6 @@ static void query(void) {
 }
 
 static void run(const gchar* name, gint nparams, const GimpParam* param, gint* nreturn_vals, GimpParam** return_vals) {
-  //
-  guint radius = 9;
-  gint x;
-  for (x = -radius; x < radius; x++);
-  g_message("-radius = %d", x);
-  //
-
   static GimpParam values[1];
   values[0].type = GIMP_PDB_STATUS;
   values[0].data.d_status = GIMP_PDB_SUCCESS;
@@ -77,6 +70,8 @@ static void run(const gchar* name, gint nparams, const GimpParam* param, gint* n
   if (run_mode == GIMP_RUN_INTERACTIVE) {
     // message shown on Gimp's error console window
     g_message("Running interactively...");
+    g_message("plugin name: %s, nparams: %d", name, nparams);
+
   }
 
   // init gegl before using its functions
